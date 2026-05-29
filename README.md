@@ -2,6 +2,7 @@
 Classifying Kepler objects of interest by number of orbiting exoplanets using gradient boosting.
 
 ![The Transit Method](transit_method.jpg)
+
 *A planet passing in front of its parent star creates a dip in 
 brightness - a transit. Depth indicates planet size; spacing indicates orbital period.*
 
