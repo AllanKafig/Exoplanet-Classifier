@@ -9,5 +9,9 @@ brightness - a transit. Depth indicates planet size; spacing indicates orbital p
 Credit: NASA Ames · [Source](https://science.nasa.gov/solar-system/skywatching/night-sky-network/may2025-night-sky-notes/)
 
 
-https://github.com/user-attachments/assets/563a1316-dfad-43f2-a4fc-0a7e92f90436
+
+
+https://github.com/user-attachments/assets/87afc41c-9535-46a0-8fe7-8fad640288fe
+
+*Animated planet transit.*
 
