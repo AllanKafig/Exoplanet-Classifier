@@ -19,8 +19,16 @@ def load_kepler_light_curve(fits_path):
             "FLUX_ERR": np.asarray(data[err_col], dtype=float),
             "QUALITY": np.asarray(data[quality_col], dtype=float),
         })
+
+        kep_id = hdul[0].header.get("KEPLERID", None)
+
+    df = df[
+        (df["QUALITY"] == 0) &
+        (df["TIME"].notna()) &
+        (df["FLUX"].notna()) &
+        (df["FLUX_ERR"].notna())
+    ]
     
-        kep_id = hdul[0].header.get("KEPLERID", None) 
     return df, kep_id
 
 def extract_features(lc, kep_id=None):
