@@ -8,16 +8,12 @@ def load_kepler_light_curve(fits_path):
     """
     with fits.open(fits_path) as hdul:
         data = hdul[1].data
-        
-        flux_col = "PDCSAP_FLUX"
-        err_col = "PDCSAP_FLUX_ERR" 
-        quality_col = "SAP_QUALITY" 
 
         df = pd.DataFrame({
             "TIME": np.asarray(data["TIME"], dtype=float),
-            "FLUX": np.asarray(data[flux_col], dtype=float),
-            "FLUX_ERR": np.asarray(data[err_col], dtype=float),
-            "QUALITY": np.asarray(data[quality_col], dtype=float),
+            "FLUX": np.asarray(data["PDCSAP_FLUX"], dtype=float),
+            "FLUX_ERR": np.asarray(data["PDCSAP_FLUX_ERR"], dtype=float),
+            "QUALITY": np.asarray(data["SAP_QUALITY"], dtype=float),
         })
 
         kep_id = hdul[0].header.get("KEPLERID", None)
