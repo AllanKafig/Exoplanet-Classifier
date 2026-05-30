@@ -1,1 +1,4 @@
-*.mp4
+kepler_data/
+__pycache__/
+.vscode/
+*.fits

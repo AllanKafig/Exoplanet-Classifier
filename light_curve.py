@@ -1,49 +1,52 @@
 import numpy as np
 import pandas as pd
-import lightkurve
 from astropy.io import fits
 
 def load_kepler_light_curve(fits_path):
-    with fits.open(fits_path) as hudl:
-        data = hudl[1].data
-
-        time = np.array(data["TIME"], dtype = float)
-        flux = np.array(data["PDCSAP_FLUX"], dtype = float)
+    """
+    Load a Kelper light curve from a FITS file.
+    """
+    with fits.open(fits_path) as hdul:
+        data = hdul[1].data
+        
+        flux_col = "PDCSAP_FLUX"
+        err_col = "PDCSAP_FLUX_ERR" 
+        quality_col = "SAP_QUALITY" 
 
         df = pd.DataFrame({
-            "TIME": np.asarray(data["TIME"], dtype = float),
-            "PDCSAP_FLUX": np.asarray(data["PDCSAP_FLUX"], dtype = float),
-            "PDCSAP_FLUX_ERR": np.asarray(data["PDCSAP_FLUX_ERR"], dtype = float),
-            "SAP_QUALITY": np.asarray(data["SAP_QUALITY"], dtype = float),
+            "TIME": np.asarray(data["TIME"], dtype=float),
+            "FLUX": np.asarray(data[flux_col], dtype=float),
+            "FLUX_ERR": np.asarray(data[err_col], dtype=float),
+            "QUALITY": np.asarray(data[quality_col], dtype=float),
         })
 
-        kep_id = hudl[0].header.get("KEPLERID", None) 
+        kep_id = hdul[0].header.get("KEPLERID", None)
 
     df = df[
-        (df["SAP_QUALITY"] == 0) &
-        (df["TIME"].notna()) & 
-        (df["PDCSAP_FLUX"].notna()) &
-        (df["PDCSAP_FLUX_ERR"]).notna()
+        (df["QUALITY"] == 0) &
+        (df["TIME"].notna()) &
+        (df["FLUX"].notna()) &
+        (df["FLUX_ERR"].notna())
     ]
-
+    
     return df, kep_id
 
-def extract_features(fits_path):
-    df, kep_id = load_kepler_light_curve(fits_path)
+def extract_features(lc, kep_id=None):
+    """Extract features directly from a lightkurve LightCurve object."""
+    time = np.asarray(lc.time.value, dtype=float)
+    flux = np.asarray(lc.flux.value, dtype=float)
     
-    flux = df["PDCSAP_FLUX"].values
-    time = df["TIME"].values
-    flux_err = df["PDCSAP_FLUX_ERR"].values
+    good = ~np.isnan(time) & ~np.isnan(flux)
+    time = time[good]
+    flux = flux[good]
 
     if len(flux) == 0:
         return None
 
     features = {
         "kep_id": kep_id,
-        "num_points": len(df),
+        "num_points": len(flux),
         "time_span": time.max() - time.min(),
-        "flux_err": flux_err,
-
         "mean_flux": np.mean(flux),
         "median_flux": np.median(flux),
         "std_flux": np.std(flux),
