@@ -4,7 +4,9 @@ from astropy.io import fits
 
 def load_kepler_light_curve(fits_path):
     """
-    Load a Kelper light curve from a FITS file.
+    Load a Kelper light curve from a FITS file. 
+    (Do we still need this? The dataset uses extract_features() and this 
+    function reads from FITS)
     """
     with fits.open(fits_path) as hdul:
         data = hdul[1].data
