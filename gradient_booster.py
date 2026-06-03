@@ -128,7 +128,6 @@ class RegressionTree:
         index = self.select_best_split(X, y)
         self.make_node(X, y, index)
 
-        left = 
 
 
     
