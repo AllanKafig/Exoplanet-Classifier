@@ -88,7 +88,48 @@ class RegressionTree:
     def apply(self, X):
         pass
 
-    def _build_tree(self, X, y, depth):
+    def squared_error(self, y):
         pass
+
+    def select_best_split(self, X, y):
+        n_samples, n_features = X.shape
+        best_feature = None
+        best_threshold = None
+        best_error = float('inf')
+
+        for feature in range(n_features):
+            feature_values = np.unique(X[:feature])
+
+            for i in range(feature_values):
+                threshold = (feature_values[i] + feature_values[i+1])/2
+
+                left_mask = X[:, feature] < threshold
+                right_mask = X[:, feature] >= threshold
+                left_y = y[left_mask]
+                right_y = y[right_mask]
+
+                error = (np.sum((left_y - np.mean(left_y)) ** 2) + np.sum((right_y - np.mean(right_y)) ** 2))
+
+                if error < best_error:
+                    best_error = min(error, best_error)
+                    best_threshold = threshold
+                    best_feature = feature
+
+        return best_feature, best_threshold
+
+    def make_node(self, X, y, index):
+        pass
+
+    def _build_tree(self, X, y, depth):
+        """
+        Recursively build a regression tree.
+        """
+
+        index = self.select_best_split(X, y)
+        self.make_node(X, y, index)
+
+        left = 
+
+
     
     
