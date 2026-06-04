@@ -78,9 +78,14 @@ class RegressionTree:
         self.max_depth = max_depth
         self.min_samples_split = min_samples_split
         self.root_node = None
+        
+        self.leaf_counter = 0 #keeps track of the number of leaf nodes created (to distinguish them)
+        self.leaves = {}
 
-    def fit(self, X, y):
-        pass
+    def fit(self, X, y): #TODO
+        self.leaf_counter = 0
+        self.leaves = {}
+
 
     def predict(self, X):
         """
@@ -105,7 +110,21 @@ class RegressionTree:
         return np.array([self._walk_tree(x, self.root_node).id for x in X]) 
 
     def squared_error(self, y):
-        pass
+        """Measures how "spread out" the target values are based on the following formula: Σ (yᵢ - ȳ)²
+        Args:
+            y: the target features
+        Returns:
+            float: how spread out the target values are from each other
+        """
+        if len(y) == 0: #guard for empty arrays
+            return 0.0
+        
+        avg_val = y.mean()
+        difference = [y[i] - avg_val for i in range(len(y))]
+        sqrd = [difference[i] * difference[i] for i in range(len(difference))]
+        summation = sum(sqrd)
+
+        return summation
 
     def select_best_split(self, X, y):
         n_samples, n_features = X.shape
@@ -134,9 +153,29 @@ class RegressionTree:
         return best_feature, best_threshold
 
     def make_node(self, X, y, index):
-        pass
+        """Makes a node (either a leaf or a decision node) based on the inputted index (if index is None, make a leaf; otherwise make a decision node)
+        Args:
+            X: the features of the data points that have made it to this node so far
+            y: the target values of the data points that have made it to this node so far
+            index: the index of the feature and threshold to split on (if None, make a leaf)
+        Returns:             
+            Node: the new node that was made
+        """
+        new_node = Node()
+        if index is not None: #meaning that we want to make a node (not a leaf) since we have a best_feature and best_threshold
+            new_node.feature = index[0]
+            new_node.threshold = index[1]
+            #set left_node and right_node later in _build_tree
+        else: #we want to build a leaf node
+            new_node.value = y.mean()
+            new_node.id = self.leaf_counter
+            self.leaf_counter += 1 #increment leaf counter since we have made a leaf
+            self.leaves[new_node.id] = new_node #append this newly created leaf to the dictionary of leaves (with the key being the leaf's id and the value being the leaf node itself)
+        
+        return new_node
 
-    def _build_tree(self, X, y, depth):
+
+    def _build_tree(self, X, y, depth): #TODO
         """
         Recursively build a regression tree.
         """
@@ -144,10 +183,10 @@ class RegressionTree:
         index = self.select_best_split(X, y)
         self.make_node(X, y, index)
 
-    def _walk_tree(self, x, node):
+    def _walk_tree(self, X, node):
         """Walks down the tree till it gets to a leaf node and returns that leaf
         Args:
-            x: a single row of features
+            X: a single row of features
             node: the root node of the tree to walk down
         Returns:
             node: the leaf node that best reflects the inputted features
@@ -155,7 +194,7 @@ class RegressionTree:
         current_node = node
         while not current_node.is_leaf():
             #compare the feature value to the node's threshold
-            feature_value = x[current_node.feature]
+            feature_value = X[current_node.feature]
             if feature_value < current_node.threshold:
                 #go left
                 current_node = current_node.left_node
@@ -164,8 +203,10 @@ class RegressionTree:
                 current_node = current_node.right_node
 
         return current_node
-
-
+    
+    def update_leaf(self, leaf_id, gamma): #TODO
+        pass
+    
 
 class Node:
     """
@@ -175,8 +216,8 @@ class Node:
         #node variables
         self.feature = None #index of the column/feature to test
         self.threshold = None #cuttoff value
-        self.left_node = None #points to the node to the right (child for yes)
-        self.right_node = None #points to the node to the left (child for no)
+        self.left_node = None #points to the node to the right (child for yes) --> like a linked list
+        self.right_node = None #points to the node to the left (child for no) --> like a linked list
 
         #leaf variables
         self.value = None #the prediction value
