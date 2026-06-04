@@ -83,10 +83,26 @@ class RegressionTree:
         pass
 
     def predict(self, X):
-        pass
+        """
+        Returns the predicted values for an inputted array of features X.
+        Args:
+            X (np.array): the features of a bunch of data points
+        Returns:
+            (np.array): an array of a predicted values based on 'walking the tree'
+        """
+        #goes through all rows in X and walks the decision tree with it. Returns the value of the leaf node and adds it to the array
+        return np.array([self._walk_tree(x, self.root_node).value for x in X]) 
 
     def apply(self, X):
-        pass
+        """
+        Returns the id of the leaf node that a set of features "landed" in (does this for an array of X features)
+        Args:
+            X (np.array): the features of a bunch of data points
+        Returns:
+            (np.array): an array of leaf node ids based on 'walking the tree'
+        """
+        #goes through all rows in X and walks the decision tree with it. Returns the id of the leaf node and adds it to the array
+        return np.array([self._walk_tree(x, self.root_node).id for x in X]) 
 
     def squared_error(self, y):
         pass
@@ -98,9 +114,9 @@ class RegressionTree:
         best_error = float('inf')
 
         for feature in range(n_features):
-            feature_values = np.unique(X[:feature])
+            feature_values = np.unique(X[:,feature])
 
-            for i in range(feature_values):
+            for i in range(len(feature_values)-1):
                 threshold = (feature_values[i] + feature_values[i+1])/2
 
                 left_mask = X[:, feature] < threshold
@@ -128,7 +144,46 @@ class RegressionTree:
         index = self.select_best_split(X, y)
         self.make_node(X, y, index)
 
+    def _walk_tree(self, x, node):
+        """Walks down the tree till it gets to a leaf node and returns that leaf
+        Args:
+            x: a single row of features
+            node: the root node of the tree to walk down
+        Returns:
+            node: the leaf node that best reflects the inputted features
+        """
+        current_node = node
+        while not current_node.is_leaf():
+            #compare the feature value to the node's threshold
+            feature_value = x[current_node.feature]
+            if feature_value < current_node.threshold:
+                #go left
+                current_node = current_node.left_node
+            else:
+                #go right
+                current_node = current_node.right_node
+
+        return current_node
 
 
+
+class Node:
+    """
+    Class that represents a node on the regression tree. Can be either a node (it "asks" a question about a particular feature to 
+    narrow down the prediction) or it is a leaf (it gives a prediction)"""
+    def __init__(self):
+        #node variables
+        self.feature = None #index of the column/feature to test
+        self.threshold = None #cuttoff value
+        self.left_node = None #points to the node to the right (child for yes)
+        self.right_node = None #points to the node to the left (child for no)
+
+        #leaf variables
+        self.value = None #the prediction value
+        self.id = None #label for the booster
+
+    def is_leaf(self):
+        """Is this node a leaf or not (only leaves has self.value as not None)"""
+        return self.value is not None
     
     
