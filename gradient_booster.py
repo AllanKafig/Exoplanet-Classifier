@@ -72,6 +72,12 @@ class GradientBoosterClassifier:
             F += self.learning_rate * tree.predict(X) #add the contribution of each tree
         return self._sigmoid(F) #convert log-odds to probabilities
     
+class TreeNode:
+    def __init__(self, left_child, right_child, feature_index, threshold):
+        self.left_child = left_child
+        self.right_child = right_child
+        self.feature_index = feature_index
+        self.threshold = threshold
 
 class RegressionTree:
     def __init__(self, max_depth, min_samples_split):
@@ -88,9 +94,6 @@ class RegressionTree:
     def apply(self, X):
         pass
 
-    def squared_error(self, y):
-        pass
-
     def select_best_split(self, X, y):
         n_samples, n_features = X.shape
         best_feature = None
@@ -98,9 +101,9 @@ class RegressionTree:
         best_error = float('inf')
 
         for feature in range(n_features):
-            feature_values = np.unique(X[:feature])
+            feature_values = np.unique(X[:, feature])
 
-            for i in range(feature_values):
+            for i in range(len(feature_values) - 1):
                 threshold = (feature_values[i] + feature_values[i+1])/2
 
                 left_mask = X[:, feature] < threshold
@@ -117,17 +120,36 @@ class RegressionTree:
 
         return best_feature, best_threshold
 
-    def make_node(self, X, y, index):
-        pass
+    def make_leaf(self, y):
+        """
+        Under Construction
+        """
+        leaf = TreeNode(
+            None,
+            None,
+            None,
+            np.mean(y)
+        )
 
-    def _build_tree(self, X, y, depth):
+    def build_tree(self, X, y, depth):
         """
         Recursively build a regression tree.
         """
+        if depth >= self.max_depth or np.all(y == y[0]) or len(y) < self.min_samples_split:
+            return self.make_leaf(X, y)
 
-        index = self.select_best_split(X, y)
-        self.make_node(X, y, index)
+        feature_index, threshold = self.select_best_split(X, y)
 
+        if feature_index is None:
+            return self.make_leaf(X, y)
+        
+        left_mask = X[:, feature_index] < threshold
+        right_mask = ~left_mask
+
+        left_child = self.build_tree(X[left_mask], y[left_mask], depth + 1)
+        right_child = self.build_tree(X[right_mask], y[right_mask], depth + 1)
+
+        return TreeNode(left_child, right_child, feature_index, threshold)
 
 
     
