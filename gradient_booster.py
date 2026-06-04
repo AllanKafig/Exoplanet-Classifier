@@ -192,13 +192,13 @@ class RegressionTree:
         Recursively build a regression tree.
         """
         # Stop if depth reaches set max depth, all values are the same, or we are below the minimum number of samples per node.
-        if depth >= self.max_depth or np.all(y == y[0]) or len(y) < self.min_samples_split:
-            return self._make_node(X, y, feature_index)
+        if len(y) == 0 or depth >= self.max_depth or np.all(y == y[0]) or len(y) < self.min_samples_split:
+            return self._make_node(X, y, None)
 
-        feature_index, threshold = self.select_best_split(X, y)
+        feature_index, threshold = self._select_best_split(X, y)
 
         if feature_index is None:
-            return self._make_node(X, y, feature_index)
+            return self._make_node(X, y, None)
         
         left_mask = X[:, feature_index] < threshold
         right_mask = ~left_mask
@@ -207,7 +207,10 @@ class RegressionTree:
         left_child = self._build_tree(X[left_mask], y[left_mask], depth + 1)
         right_child = self._build_tree(X[right_mask], y[right_mask], depth + 1)
 
-        return Node(feature_index, threshold, left_child, right_child)
+        node = self._make_node(X, y, (feature_index, threshold))
+        node.left_node = left_child
+        node.right_node = right_child
+        return node
     
     def _walk_tree(self, X, node):
         """Walks down the tree till it gets to a leaf node and returns that leaf
@@ -252,5 +255,4 @@ class Node:
     def is_leaf(self):
         """Is this node a leaf or not (only leaves has self.value as not None)"""
         return self.value is not None
-    
     
