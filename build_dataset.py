@@ -35,7 +35,7 @@ def get_star_labels():
     return labels
  
  
-def pick_balanced_stars(labels):
+def pick_balanced_stars(labels, stars_per_group):
     """
     Sample an equal number of exoplanet hosting and no exoplanet stars (fixed random_state for 
     reproducibility; otherwise every run picks a different subsets of stars).
@@ -44,16 +44,16 @@ def pick_balanced_stars(labels):
         labels: DataFrame with a "label" column.
 
     Returns:
-        DataFrame with `STARS_PER_GROUP` rows of each class (2 * STARS_PER_GROUP total).
+        DataFrame with `stars_per_group` rows of each class (2 * stars_per_group total).
     """
-    planets = labels[labels["label"] == 1].sample(STARS_PER_GROUP, random_state=42)
-    no_planets = labels[labels["label"] == 0].sample(STARS_PER_GROUP, random_state=42)
+    planets = labels[labels["label"] == 1].sample(stars_per_group, random_state=42)
+    no_planets = labels[labels["label"] == 0].sample(stars_per_group, random_state=42)
     return pd.concat([planets, no_planets])
  
  
 def main():
     labels = get_star_labels()
-    stars = pick_balanced_stars(labels)
+    stars = pick_balanced_stars(labels, STARS_PER_GROUP)
     print(f"processing {len(stars)} stars")
  
     rows = []
