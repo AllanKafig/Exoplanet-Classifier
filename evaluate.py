@@ -1,15 +1,28 @@
 import numpy as np
 import pandas as pd
-import matplotlib as plt
+import matplotlib.pyplot as plt
 from gradient_booster import GradientBoosterClassifier
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.dummy import DummyClassifier
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, confusion_matrix, roc_auc_score
+from sklearn.metrics import accuracy_score, confusion_matrix, roc_auc_score, average_precision_score, roc_curve, precision_recall_curve
+from graphviz import Digraph
 
 def get_scores(y_true, y_pred, y_proba=None):
-    """Bundle the classification metrics for one model into a dict, 
-    so our GB and sklearn's GB are all scored the same way."""
+    """Compute classification metrics for one model and return them as a dict.
+
+    TP/FP/FN/TN, accuracy, precision, recall, and F1 are computed manually. 
+    ROC-AUC uses sklearn's implementation since manual computation is 
+    significantly more involved.
+
+    Args:
+        y_true: Ground truth labels (0 or 1).
+        y_pred: Hard predictions (0 or 1).
+        y_proba: Optional positive-class probabilities; required for ROC-AUC.
+
+    Returns:
+        Dict with keys: tp, fp, fn, tn, accuracy, precision, recall, f1,
+    """ 
     y_true = np.asarray(y_true)
     y_pred = np.asarray(y_pred)
     
@@ -33,57 +46,63 @@ def get_scores(y_true, y_pred, y_proba=None):
     )
     
     if y_proba is not None:
-        #roc_auc uses the probabilities (not the 0/1 labels) to score how well the
-        #model ranks planets above non-planets;
+        #roc_auc uses the probabilities to rank how often a model a random positive above a random negative
         #not too sure on how to get auc, used sklearn's implementation
         out["roc_auc"] = roc_auc_score(y_true, y_proba)
+        out["pr_auc"] = average_precision_score(y_true, y_proba) 
     
     return out
 
-def plot_learning_curve(X, y, save_path="learning_curve.png"):
-    """Plot how F1 and ROC-AUC evolve as n_trees increases.
-    Justifies the choice of n_trees by showing where performance plateaus."""
-    X_tr, X_te, y_tr, y_te = train_test_split(
-        X, y, test_size = 0.2, random_state = 42, stratify = y
-    )
+def plot_roc_pr(models, X_te, y_te, filename="roc_pr"):
+    """
+    Generate overlaid ROC and PR curves for multiple classifiers.
+    Both curves are threshold-free comparisons.
     
-    n_trees_list = [10, 20, 40, 60, 100]
-    f1s = []
-    aucs = []
-    
-    for n in n_trees_list:
-        print(f"Training with n_trees={n}")
-        model = GradientBoosterClassifier(n_trees=n, learning_rate=0.1, max_tree_depth=3)
-        model.fit(X_tr, y_tr)
-        pred = model.predict(X_te)
-        proba = model.predict_proba(X_te)
-        if proba.ndim == 2:
-            proba = proba[:, 1]
-       
-        scores = get_scores(y_te, pred, proba)
-        f1s.append(scores["f1"])
-        aucs.append(scores["roc_auc"])
-    
-    fig, ax = plt.subplots(figsize=(8, 5))
-    ax.plot(n_trees_list, f1s, "o-", label="F1", color="#3266ad", linewidth=2)
-    ax.plot(n_trees_list, aucs, "s-", label="ROC-AUC", color="#73726c", linewidth=2)
-    ax.set_xlabel("Number of trees")
-    ax.set_ylabel("Score")
-    ax.set_title("Performance vs number of trees (custom GB)")
-    ax.legend()
-    ax.grid(alpha=0.3)
-    ax.set_ylim(0, 1)
-    
-    plt.tight_layout()
-    plt.savefig(save_path, dpi=150, bbox_inches="tight")
-    plt.close()
+    Args:
+        models: Dict of display name -> trained classifier with predict_proba.
+        X_te: Test features.
+        y_te: Test labels.
+        save_path: Output path for the saved PNG.
+    """
+    fig, (ax_roc, ax_pr) = plt.subplots(1, 2, figsize=(11, 5))
+  
+    for name, model in models.items():
+          #class-1 probabilities: sklearn returns 2 columns, ours returns 1
+          proba = model.predict_proba(X_te)
+          if proba.ndim == 2:
+              proba = proba[:, 1]
+  
+          #ROC: true-positive rate vs false-positive rate at every threshold
+          fpr, tpr, _ = roc_curve(y_te, proba)
+          roc_auc = roc_auc_score(y_te, proba)
+          ax_roc.plot(fpr, tpr, label=f"{name} (AUC = {roc_auc:.3f})")
+  
+          #PR: precision vs recall at every threshold (better for imbalance)
+          prec, rec, _ = precision_recall_curve(y_te, proba)
+          pr_auc = average_precision_score(y_te, proba)
+          ax_pr.plot(rec, prec, label=f"{name} (PR-AUC = {pr_auc:.3f})")
+  
+    # ROC: diagonal = random guessing
+    ax_roc.plot([0, 1], [0, 1], "--", color="gray", label="chance (AUC = 0.5)")
+    ax_roc.set_xlabel("FPR"); ax_roc.set_ylabel("TPR"); ax_roc.set_title("ROC curve")
+    ax_roc.legend(loc="lower right")
+  
+    # PR: horizontal baseline = the positive-class rate (what a no-skill model gets)
+    base = float(np.mean(y_te))
+    ax_pr.axhline(base, ls="--", color="gray", label=f"baseline ({base:.2f})")
+    ax_pr.set_xlabel("Recall"); ax_pr.set_ylabel("Precision"); ax_pr.set_title("PR curve")
+    ax_pr.legend(loc="upper right")
+  
+    fig.tight_layout()
+    fig.savefig(f"{filename}.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
 
 def evaluate_correctness():
-    """is our GB implemented correctly? Train on a known deterministic rule; 
+    """Is our GB implemented correctly? Train on a known deterministic rule; 
     high accuracy means boosting works."""
     rng = np.random.default_rng(0)
     X = rng.uniform(0, 10, size=(3000, 8)) #3000 samples, 8 features, values 0–10
-    # label = 1 when feature 0 < 5 AND feature 1 > 5; 0 otherwise
+    #label = 1 when feature 0 < 5 AND feature 1 > 5; 0 otherwise
     y = ((X[:, 0] < 5) & (X[:, 1] > 5)).astype(int) 
 
     X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size = 0.2, random_state = 0)
@@ -96,7 +115,7 @@ def evaluate_correctness():
 
 
 def is_my_gb_good(X, y, params):
-    """is our GB good on real data? Compare it, on the same split, to
+    """Is our GB good on real data? Compare it, on the same split, to
     sklearn's GB (ceiling) and an always-majority dummy (floor). Good = near
     sklearn and well above dummy, judged by recall/F1/AUC (not accuracy)."""
     X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size = 0.2, random_state = 42, stratify = y)
@@ -130,6 +149,7 @@ def is_my_gb_good(X, y, params):
         
     print("our confusion matrix [[TN FP] [FN TP]]:")
     print(confusion_matrix(y_te, ours_pred))
+    plot_roc_pr({"our GB": ours, "sklearn": sk}, X_te, y_te)
 
 def load_data():
     """Load the real exoplanet dataset. X is features and y is 0/1."""
