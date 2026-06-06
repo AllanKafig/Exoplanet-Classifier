@@ -1,5 +1,6 @@
 import numpy as np
 import math
+from tqdm import tqdm
 
 class GradientBoosterClassifier:
     def __init__(self, n_trees, learning_rate, max_tree_depth):
@@ -29,7 +30,7 @@ class GradientBoosterClassifier:
         
         current_F = np.full(X.shape[0], self.F_0) #model's current running score for each training sample
 
-        for m in range(self.n_trees):
+        for m in tqdm(range(self.n_trees), desc = "Training trees"):
             probabilities = self._sigmoid(current_F) #compute the pobabilities of our guesses
             residuals = y - probabilities #compute the residuals ("how far off are we")
             
@@ -83,7 +84,7 @@ class RegressionTree:
 
     def fit(self, X, y): 
         """
-        Fits the with a regression Tree and returns the RegressionTree.
+        Fits a regression Tree to the data and returns the RegressionTree.
         """
         X = np.asarray(X)
         y = np.asarray(y)
@@ -255,4 +256,5 @@ class Node:
     def is_leaf(self):
         """Is this node a leaf or not (only leaves has self.value as not None)"""
         return self.value is not None
+    
     
