@@ -93,9 +93,9 @@ def plot_roc_pr(models, X_te, y_te, filename="roc_pr"):
     ax_pr.set_xlabel("Recall"); ax_pr.set_ylabel("Precision"); ax_pr.set_title("PR curve")
     ax_pr.legend(loc="upper right")
   
-    fig.tight_layout()
-    fig.savefig(f"{filename}.png", dpi=150, bbox_inches="tight")
-    plt.close(fig)
+    # fig.tight_layout()
+    # fig.savefig(f"{filename}.png", dpi=150, bbox_inches="tight")
+    # plt.close(fig)
 
 def evaluate_correctness():
     """Is our GB implemented correctly? Train on a known deterministic rule; 
