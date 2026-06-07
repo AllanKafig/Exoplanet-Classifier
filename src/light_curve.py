@@ -1,3 +1,5 @@
+"""Loads Kepler light curves from FITS files and extracts summary 
+flux-statistic features used to train the classifier."""
 import numpy as np
 import pandas as pd
 from astropy.io import fits
