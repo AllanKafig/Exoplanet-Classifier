@@ -1,7 +1,9 @@
 import torch 
 import numpy as np
+import pandas as pd
 from torch import nn
 from torch.utils.data import TensorDataset, DataLoader
+from sklearn.model_selection import train_test_split
 
 class ExoplanetRNN(nn.Module):
     """
@@ -61,16 +63,51 @@ def train_rnn(light_curves, labels, epochs, batch_size, learning_rate):
 
     return model
 
-def train(light_curves, labels):
-    pass
+def evaluate(model, light_curves, labels):
+    device = next(model.parameters()).device
+
+    x = torch.tensor(light_curves, dtype=torch.float32)
+    x = x[:, :, None].to(device)
+
+    model.eval()
+
+    with torch.no_grad():
+        probabilities = torch.sigmoid(model(x))
+        predictions = (probabilities >= 0.5).cpu().numpy()
+
+    return np.mean(predictions == labels)
 
 if __name__ == "__main__":
-    light_curves = np.random.randn(200, 1000)
-    labels = np.random.randint(0, 2, size = 200)
-    model = train_rnn(
-        light_curves = light_curves,
-        labels = labels,
-        epochs = 5,
-        batch_size = 32,
-        learning_rate = 0.001
+    df = pd.read_csv("data/all_koi_one_quarter.csv")
+    flux_columns = [col for col in df.columns if "flux" in col]
+    flux_columns.sort(key=lambda col: int(col.split("_")[1]))
+    labels = df["label"]
+
+    print("Label counts:")
+    print(df["label"].value_counts())
+
+    majority_baseline = df["label"].value_counts(normalize=True).max()
+    print(f"Majority-class baseline: {majority_baseline:.3f}")
+
+    light_curves = df[flux_columns].to_numpy(dtype=np.float32)
+
+    x_train, x_test, y_train, y_test = train_test_split(
+        light_curves,
+        labels,
+        test_size=0.2,
+        random_state=0,
+        stratify=labels,
     )
+
+    model = train_rnn(
+        light_curves=x_train,
+        labels=y_train,
+        epochs=20,
+        batch_size=32,
+        learning_rate=0.001
+    )
+
+    test_accuracy = evaluate(model, x_test, y_test)
+    print(f"Test accuracy: {test_accuracy:.3f}")
+
+    torch.save(model.state_dict(), "exoplanet_rnn.pt")

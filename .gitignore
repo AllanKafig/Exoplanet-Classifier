@@ -2,3 +2,4 @@ kepler_data/
 __pycache__/
 .vscode/
 *.fits
+/data
