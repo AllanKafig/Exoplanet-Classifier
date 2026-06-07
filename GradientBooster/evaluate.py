@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -6,7 +7,9 @@ from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.dummy import DummyClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, confusion_matrix, roc_auc_score, average_precision_score, roc_curve, precision_recall_curve
-from graphviz import Digraph
+
+EVAL_FIG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "eval_fig")
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data")
 
 def get_scores(y_true, y_pred, y_proba=None):
     """Compute classification metrics for one model and return them as a dict.
@@ -53,6 +56,7 @@ def get_scores(y_true, y_pred, y_proba=None):
     
     return out
 
+
 def plot_roc_pr(models, X_te, y_te, filename="roc_pr"):
     """
     Generate overlaid ROC and PR curves for multiple classifiers.
@@ -93,9 +97,61 @@ def plot_roc_pr(models, X_te, y_te, filename="roc_pr"):
     ax_pr.set_xlabel("Recall"); ax_pr.set_ylabel("Precision"); ax_pr.set_title("PR curve")
     ax_pr.legend(loc="upper right")
   
-    # fig.tight_layout()
-    # fig.savefig(f"{filename}.png", dpi=150, bbox_inches="tight")
-    # plt.close(fig)
+    fig.tight_layout()
+    os.makedirs(EVAL_FIG_DIR, exist_ok=True)
+    out_path = os.path.join(EVAL_FIG_DIR, f"{filename}.png")
+    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_confusion_matrices(models, X_te, y_te, filename="confusion_matrix"):
+    """Plot confusion matrices for multiple classifiers side-by-side.
+
+    Args:
+        models: Dict of display name -> trained classifier with .predict().
+        X_te: Test features.
+        y_te: Test labels.
+        filename: Base filename.
+    """
+    class_names = ["0", "1"]
+    # cell_labels[i][j] = category when true label = i, predicted = j
+    cell_labels = [["True Negative", "False Positive"],
+                   ["False Negative", "True Positive"]]
+
+    n = len(models)
+    fig, axes = plt.subplots(1, n, figsize=(5 * n, 4.5))
+    if n == 1:
+        axes = [axes]
+
+    for ax, (name, model) in zip(axes, models.items()):
+        cm = confusion_matrix(y_te, model.predict(X_te))
+        total = cm.sum()
+        im = ax.imshow(cm, cmap="Blues")
+
+        ax.set_title(name, fontsize=12, fontweight="bold")
+        ax.set_xticks([0, 1]); ax.set_xticklabels(class_names)
+        ax.set_yticks([0, 1]); ax.set_yticklabels(class_names, rotation=90, va="center")
+        ax.set_xlabel("Predicted label")
+        ax.set_ylabel("True label")
+
+        # annotate each cell with category, count, and percentage
+        thresh = cm.max() / 2
+        for i in range(2):
+            for j in range(2):
+                count = cm[i, j]
+                pct = 100 * count / total if total else 0
+                color = "white" if count > thresh else "black"
+                ax.text(j, i, f"{cell_labels[i][j]}\n{count}\n({pct:.1f}%)",
+                        ha="center", va="center", color=color, fontsize=11)
+
+        fig.colorbar(im, ax=ax, shrink=0.75)
+
+    fig.tight_layout()
+    os.makedirs(EVAL_FIG_DIR, exist_ok=True)
+    out_path = os.path.join(EVAL_FIG_DIR, f"{filename}.png")
+    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
 
 def evaluate_correctness():
     """Is our GB implemented correctly? Train on a known deterministic rule; 
@@ -149,11 +205,15 @@ def is_my_gb_good(X, y, params):
         
     print("our confusion matrix [[TN FP] [FN TP]]:")
     print(confusion_matrix(y_te, ours_pred))
+
+    all_models = {"our GB": ours, "sklearn": sk, "dummy": dummy}
     plot_roc_pr({"our GB": ours, "sklearn": sk}, X_te, y_te)
+    plot_confusion_matrices(all_models, X_te, y_te)
+
 
 def load_data():
     """Load the real exoplanet dataset. X is features and y is 0/1."""
-    df = pd.read_csv("features.csv")
+    df = pd.read_csv(os.path.join(DATA_DIR, "features.csv"))
     df = df.dropna(subset=["label"])
     df = df.dropna() 
     
@@ -161,6 +221,7 @@ def load_data():
     X = df.drop(columns=["label", "kep_id"]).values 
 
     return X, y
+
 
 def main():
     """Run both evaluation layers: correctness first, then real data performance."""
