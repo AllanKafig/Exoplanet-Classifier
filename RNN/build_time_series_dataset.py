@@ -6,10 +6,13 @@ from scipy.stats import binned_statistic
 
 from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent))   #so that we can import from light_curve.py and build_dataset.py
-from build_dataset import pick_balanced_stars
+from src.build_dataset import pick_balanced_stars
+
+#resolve data paths relative to the repo root so the script works from any cwd                                
+DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 
 STARS_PER_GROUP = 3500
-OUTPUT_FILE = "RNN/lc_features.csv"
+OUTPUT_FILE = DATA_DIR / "lc_features.csv"
 
 def get_star_labels():
     """
@@ -26,7 +29,7 @@ def get_star_labels():
         1 or 0.
     """
 
-    koi = pd.read_csv("koi_cumulative.csv", comment="#")
+    koi = pd.read_csv(DATA_DIR / "koi_cumulative.csv", comment="#")
 
     # koi.drop(koi[koi["koi_disposition"] == "CANDIDATE"].index, inplace=True) #drop candidates so we only have confirmed planets vs false positives
  
@@ -49,7 +52,7 @@ def getStuff():
         DataFrame with columns ["kepid", "koi_period", "koi_time0bk"] — one row per star, where kepid is the Kepler ID, 
         koi_period is the known period of the planet (from the KOI table), and koi_time0bk is the known time of first transit (from the KOI table).
     """
-    koi = pd.read_csv("koi_cumulative.csv", comment="#")
+    koi = pd.read_csv(DATA_DIR / "koi_cumulative.csv", comment="#")
 
     rows = []
     for _, row in koi.iterrows():
