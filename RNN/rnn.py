@@ -130,7 +130,7 @@ if __name__ == "__main__":
     df = pd.read_csv("data/rnn_timeseries.csv")
     flux_columns = [col for col in df.columns if "flux" in col]
     flux_columns.sort(key=lambda col: int(col.split("_")[1]))
-    labels = df["label"]
+    labels = df["label"].to_numpy(dtype=np.float32)
 
     print("Label counts:")
     print(df["label"].value_counts())

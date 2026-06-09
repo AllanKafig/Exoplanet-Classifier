@@ -11,7 +11,7 @@ from src.build_dataset import pick_balanced_stars
 #resolve data paths relative to the repo root so the script works from any cwd                                
 DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 
-STARS_PER_GROUP = 500
+STARS_PER_GROUP = 100
 OUTPUT_FILE = DATA_DIR / "1000koi_allquarters.csv"
 SAVE_EVERY = 5
 
@@ -36,7 +36,6 @@ def get_star_labels():
  
     koi["label"] = koi["koi_disposition"].map({
         "CONFIRMED": 1,
-        "CANDIDATE": 1,
         "FALSE POSITIVE": 0,
     })
     koi = koi.dropna(subset=["label"])
@@ -150,6 +149,7 @@ def main():
             rows.append(features)
             print(f"  [{count}/{len(stars)}] OK   KIC {kepid}")
 
+            # Save to file every few rows to save data in case the program terminates early
             if len(rows) % SAVE_EVERY == 0:
                 save_rows(rows)
                 print(f"checkpoint: saved {len(rows)} rows")
