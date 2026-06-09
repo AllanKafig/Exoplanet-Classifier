@@ -12,3 +12,33 @@ https://github.com/user-attachments/assets/563a1316-dfad-43f2-a4fc-0a7e92f90436
 *Animated planet transit.*
 
 Credit: NASA Ames · [Source](https://science.nasa.gov/solar-system/skywatching/night-sky-network/may2025-night-sky-notes/)
+
+### The Data
+
+We label each Kepler star from the KOI catalog: `1` if any of its objects of interest is **CONFIRMED** (hosts an exoplanet), `0` if all are **FALSE POSITIVE**. CANDIDATE dispositions are excluded since they are unverified and would add label noise.
+
+**What does the raw signal look like for a host vs. a false positive?**
+
+![Folded transit gallery](src/data_exploration/folded_examples_gallery.png)
+
+*Folded light curves, zoomed on the transit window. Top 12 are confirmed host examples: clean and repeating brightness dips as the planet crosses its star. Bottom 12 are false positive examples: mostly noise with no coherent transit. This is the signal our models learn to separate.*
+
+**What separates a real planet from a false positive?**
+
+![Depth-normalized median folded curve by class](src/data_exploration/folded_median_overlay.png)
+
+*Median folded curve across all 6,640 stars, each scaled to its own transit depth. Both classes share the primary dip at phase 0 (and the wrapped edges at ±0.5). Only false positives (red) add the shallow dips at phase ±0.25. These are eclipsing-binary secondary eclipses, and the classifier keys on them.*
+
+**How do different types of planets differ in the signal they leave?**
+
+![How exoplanet types differ](src/data_exploration/planet_types.png)
+
+*Bigger planets carve deeper transits, and each radius class occupies a distinct region of the period-radius diagram, making transit depth a very informative feature.*
+
+**Which stars are more likely to host planets?**
+
+![Which stars host planets](src/data_exploration/stellar_hosting.png)
+
+*Metal-rich stars host confirmed planets far more often (host fraction climbs from ~0.06 to ~0.7 with metallicity), and cooler stars host more than hot ones across the H-R diagram. So stellar properties add signal on top of the light curve itself.*
+
+
