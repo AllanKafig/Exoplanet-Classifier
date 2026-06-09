@@ -86,6 +86,12 @@ def train_rnn(light_curves, labels, epochs, batch_size, learning_rate):
     y = torch.tensor(labels.values, dtype = torch.float32)
     x = x[:, :, None]
 
+    # Compute class weight from training data
+    num_pos = (y == 1).sum().item()
+    num_neg = (y == 0).sum().item()
+    pos_weight = num_neg / num_pos
+    print(f"pos_weight = {pos_weight:.3f}")
+
     dataset = TensorDataset(x, y)
     loader = DataLoader(dataset, batch_size = batch_size, shuffle = True)
     model = ExoplanetRNN()                    # weights already created on DEVICE
@@ -95,7 +101,7 @@ def train_rnn(light_curves, labels, epochs, batch_size, learning_rate):
         for batch_x, batch_y in loader:
             batch_x = batch_x.to(DEVICE)
             batch_y = batch_y.to(DEVICE)
-            loss = bce_loss(model(batch_x), batch_y)        
+            loss = bce_loss(model(batch_x), batch_y, pos_weight=pos_weight)      
             loss.backward()                                 # autograd fills .grad
             sgd_step(model.parameters(), learning_rate)     # manual SGD (see helper func above)
             total_loss += loss.item() * len(batch_x)
