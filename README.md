@@ -15,7 +15,7 @@ Credit: NASA Ames · [Source](https://science.nasa.gov/solar-system/skywatching/
 
 ### The Data
 
-We label each Kepler star from the KOI catalog: `1` if any of its objects of interest is **CONFIRMED** (hosts an exoplanet), `0` if all are **FALSE POSITIVE**. CANDIDATE dispositions are excluded since they are unverified and would add label noise.
+We label each Kepler star from the KOI catalog: `1` if any of its objects of interest is **CONFIRMED** (hosts an exoplanet), `0` if all are **FALSE POSITIVE** (no exoplanet). CANDIDATE dispositions are excluded since they are unverified and would add label noise.
 
 **What does the raw signal look like for a host vs. a false positive?**
 
@@ -39,6 +39,6 @@ We label each Kepler star from the KOI catalog: `1` if any of its objects of int
 
 ![Which stars host planets](src/data_exploration/stellar_hosting.png)
 
-*Metal-rich stars host confirmed planets far more often (host fraction climbs from ~0.06 to ~0.7 with metallicity), and cooler stars host more than hot ones across the H-R diagram. So stellar properties add signal on top of the light curve itself.*
+*Metal-rich stars host confirmed planets far more often (host fraction climbs from ~0.06 to ~0.7 with metallicity), and cooler stars host more than hot ones across the H-R diagram.*
 
 
