@@ -33,7 +33,7 @@ We label each Kepler star from the KOI catalog: `1` if any of its objects of int
 
 ![How exoplanet types differ](src/data_exploration/planet_types.png)
 
-*Bigger planets carve deeper transits, and each radius class occupies a distinct region of the period-radius diagram, making transit depth a very informative feature.*
+*Confirmed planets span Earth-size up to gas giants, most at short orbital periods where they transit often and are easiest to catch (left panel). Planet size largely drives the signal: median transit depth climbs steadily from Earth-size to Jovian (right panel), since bigger planets block more starlight and leave deeper, easier-to-detect dips. It is only a trend though, because depth is roughly the ratio of the planet's area to its star's, so the same planet looks deeper around a smaller star. Because of this, the size classes overlap: an Earth-size planet around a small star can leave the same depth as a super-Earth around a bigger one. The smallest planets are also the hardest to measure, since their tiny dips get lost in the light curve's noise.*
 
 **Which stars are more likely to host planets?**
 
