@@ -86,12 +86,6 @@ def train_rnn(light_curves, labels, epochs, batch_size, learning_rate):
     y = torch.tensor(labels.values, dtype = torch.float32)
     x = x[:, :, None]
 
-    # Compute class weight from training data
-    num_pos = (y == 1).sum().item()
-    num_neg = (y == 0).sum().item()
-    pos_weight = num_neg / num_pos
-    print(f"pos_weight = {pos_weight:.3f}")
-
     dataset = TensorDataset(x, y)
     loader = DataLoader(dataset, batch_size = batch_size, shuffle = True)
     model = ExoplanetRNN()                    # weights already created on DEVICE
@@ -101,7 +95,7 @@ def train_rnn(light_curves, labels, epochs, batch_size, learning_rate):
         for batch_x, batch_y in loader:
             batch_x = batch_x.to(DEVICE)
             batch_y = batch_y.to(DEVICE)
-            loss = bce_loss(model(batch_x), batch_y, pos_weight=pos_weight)      
+            loss = bce_loss(model(batch_x), batch_y)        
             loss.backward()                                 # autograd fills .grad
             sgd_step(model.parameters(), learning_rate)     # manual SGD (see helper func above)
             total_loss += loss.item() * len(batch_x)
@@ -120,7 +114,7 @@ def evaluate(model, light_curves):
     labels_array = labels.values if hasattr(labels, 'values') else np.asarray(labels)
     return float(np.mean(predictions == labels_array)) 
 
-def scores(y_true, prob, threshold=0.5):
+def scores(y_true, prob, threshold=0.3):
     y_true = np.asarray(y_true)
     pred = (prob >= threshold).astype(int)
     return {
@@ -129,7 +123,7 @@ def scores(y_true, prob, threshold=0.5):
         "precision": precision_score(y_true, pred, zero_division=0),
         "f1":        f1_score(y_true, pred),
         "roc_auc":   roc_auc_score(y_true, prob),
-        "pr_auc":    average_precision_score(y_true, prob),    
+        "pr_auc":    average_precision_score(y_true, prob),     
       }
 
 if __name__ == "__main__":
@@ -159,15 +153,13 @@ if __name__ == "__main__":
         labels=y_train,
         epochs=10,
         batch_size=64,
-        learning_rate=0.3
+        learning_rate=0.01
     )
+
     prob = evaluate(model, x_test)
     for k, v in scores(y_test, prob).items():
         print(f"  {k:10s} {v:.3f}")
     print(f"  (majority-acc baseline = {majority_baseline:.3f},  "
           f"PR-AUC no-skill = {float(np.mean(y_test)):.3f})")
     
-    test_accuracy = evaluate(model, x_test)
-    print(f"Test accuracy: {test_accuracy:.3f}")
-
-    torch.save([w.detach().cpu() for w in model.parameters()], "exoplanet_rnn.pt")  
+    torch.save([w.detach().cpu() for w in model.parameters()], "exoplanet_rnn.pt")
