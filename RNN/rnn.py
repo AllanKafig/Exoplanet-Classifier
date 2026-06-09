@@ -78,10 +78,10 @@ def evaluate(model, light_curves, labels):
     return np.mean(predictions == labels)
 
 if __name__ == "__main__":
-    df = pd.read_csv("data/all_koi_one_quarter.csv")
+    df = pd.read_csv("data/rnn_timeseries.csv")
     flux_columns = [col for col in df.columns if "flux" in col]
     flux_columns.sort(key=lambda col: int(col.split("_")[1]))
-    labels = df["label"]
+    labels = df["label"].to_numpy(dtype=np.float32)
 
     print("Label counts:")
     print(df["label"].value_counts())
@@ -110,4 +110,4 @@ if __name__ == "__main__":
     test_accuracy = evaluate(model, x_test, y_test)
     print(f"Test accuracy: {test_accuracy:.3f}")
 
-    torch.save(model.state_dict(), "exoplanet_rnn.pt")
+    torch.save(model.state_dict(), f"exoplanet_rnn.pt")

@@ -2,8 +2,4 @@ kepler_data/
 __pycache__/
 .vscode/
 *.fits
-<<<<<<< HEAD
 /data
-=======
-data/lc_features.csv
->>>>>>> d967ebfdd03a9eb506f6690e2e3a4e04fbd6d25f
