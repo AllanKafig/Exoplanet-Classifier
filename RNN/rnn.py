@@ -81,14 +81,40 @@ def sgd_step(params, lr):
             w -= lr * w.grad
             w.grad.zero_()
 
-def train_rnn(light_curves, labels, epochs, batch_size, learning_rate):
+
+def adam_step(params, lr, state, betas=(0.9, 0.999), eps=1e-8):
+    b1, b2 = betas
+    with torch.no_grad():
+        for i, w in enumerate(params):
+            if w.grad is None:
+                continue
+
+            g = w.grad
+            s = state.setdefault(i, {
+                "m": torch.zeros_like(w), #running average of gradients (momentum)
+                "v": torch.zeros_like(w), #running average of squared gradients (adaptive part)
+                "t": 0 #step counter
+                })
+
+            s["t"] += 1 
+            s["m"].mul_(b1).add_(g, alpha=1 - b1)  # m = b1 * m + (1 - b1) * g
+            s["v"].mul_(b2).addcmul_(g, g, value=1 - b2)  # v = b2 * v + (1 - b2) * (g * g)
+            m_hat = s["m"] / (1 - b1 ** s["t"])  # bias correction
+            v_hat = s["v"] / (1 - b2 ** s["t"])
+            w.addcdiv_(m_hat, v_hat.sqrt().add(eps), value=-lr)  # w = w - lr * m_hat / (sqrt(v_hat) + eps)
+            w.grad.zero_()
+
+
+def train_rnn(light_curves, labels, epochs, batch_size, learning_rate, optimize="adam"):
     x = torch.tensor(light_curves, dtype = torch.float32)
-    y = torch.tensor(labels.values, dtype = torch.float32)
+    y = torch.tensor(np.asarray(labels), dtype = torch.float32)
     x = x[:, :, None]
 
     dataset = TensorDataset(x, y)
     loader = DataLoader(dataset, batch_size = batch_size, shuffle = True)
     model = ExoplanetRNN()                    # weights already created on DEVICE
+
+    opt_state = {} #for adam
 
     for epoch in range(epochs):
         total_loss = 0.0
@@ -97,7 +123,12 @@ def train_rnn(light_curves, labels, epochs, batch_size, learning_rate):
             batch_y = batch_y.to(DEVICE)
             loss = bce_loss(model(batch_x), batch_y)        
             loss.backward()                                 # autograd fills .grad
-            sgd_step(model.parameters(), learning_rate)     # manual SGD (see helper func above)
+
+            if optimize == "adam":
+                adam_step(model.parameters(), learning_rate, opt_state)     # Adam optimizer 
+            else:
+                sgd_step(model.parameters(), learning_rate)     # manual SGD (see helper func above)
+
             total_loss += loss.item() * len(batch_x)
         average_loss = total_loss / len(dataset)
         print(f"Epoch {epoch + 1}: loss = {average_loss:.4f}")
@@ -126,6 +157,12 @@ def scores(y_true, prob, threshold=0.3):
         "pr_auc":    average_precision_score(y_true, prob),     
       }
 
+def standardize_rows(X, eps=1e-8):
+    """Standardize each row of X to have mean 0 and std 1, with small eps for numerical stability."""
+    mean = X.mean(axis = 1, keepdims=True)
+    std = X.std(axis = 1, keepdims=True)
+    return (X - mean) / (std + eps)
+
 if __name__ == "__main__":
     df = pd.read_csv("data/rnn_timeseries.csv")
     flux_columns = [col for col in df.columns if "flux" in col]
@@ -139,6 +176,7 @@ if __name__ == "__main__":
     print(f"Majority-class baseline: {majority_baseline:.3f}")
 
     light_curves = downsample(np.clip(df[flux_columns].to_numpy(np.float32), -1, 1), factor=8)
+    light_curves = standardize_rows(light_curves) #standardize the light curves to have mean 0 and std 1 for better training stability
 
     x_train, x_test, y_train, y_test = train_test_split(
         light_curves,
@@ -151,15 +189,37 @@ if __name__ == "__main__":
     model = train_rnn(
         light_curves=x_train,
         labels=y_train,
-        epochs=10,
+        epochs=70,
         batch_size=64,
-        learning_rate=0.01
+        learning_rate=1e-3,
+        optimize="adam",
+    )
+
+    model_sgd = train_rnn(
+        light_curves=x_train,
+        labels=y_train,
+        epochs=70,
+        batch_size=64,
+        learning_rate=1e-3,
+        optimize="sgd",
     )
 
     prob = evaluate(model, x_test)
+    print("Adam-optimized model performance:")
     for k, v in scores(y_test, prob).items():
         print(f"  {k:10s} {v:.3f}")
     print(f"  (majority-acc baseline = {majority_baseline:.3f},  "
           f"PR-AUC no-skill = {float(np.mean(y_test)):.3f})")
     
     torch.save([w.detach().cpu() for w in model.parameters()], "exoplanet_rnn.pt")
+
+
+    prob_sgd = evaluate(model_sgd, x_test)
+    print("SGD-optimized model performance:")
+    for k, v in scores(y_test, prob_sgd).items():
+        print(f"  {k:10s} {v:.3f}")
+    print(f"  (majority-acc baseline = {majority_baseline:.3f},  "
+          f"PR-AUC no-skill = {float(np.mean(y_test)):.3f})")
+
+    # for p, true in zip(prob[:10], y_test[:10]):
+    #     print(f"  prob={p:.3f}   true={int(true)}")
