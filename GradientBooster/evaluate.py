@@ -4,12 +4,33 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from gradient_booster import GradientBoosterClassifier
 from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.dummy import DummyClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, confusion_matrix, roc_auc_score, average_precision_score, roc_curve, precision_recall_curve
 
 EVAL_FIG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "eval_fig")
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data")
+
+def compute_log_loss(y_true, y_proba, eps=1e-15):
+    """Binary cross-entropy (log loss), computed from scratch.
+
+        log loss = -mean( y*log(p) + (1-y)*log(1-p) )
+
+    Average negative log-likelihood of true labels under predicted probabilities.
+    Confident-correct ≈ 0, confident-wrong is heavily penalized. Probabilities 
+    clipped to [eps, 1-eps] to avoid log(0) which is -inf.
+
+    Args:
+        y_true: Ground-truth labels.
+        y_proba: Predicted positive-class probabilities.
+        eps: Clip bound keeping probabilities strictly inside (0, 1).
+
+    Returns:
+        Mean log loss; lower is better.
+    """
+    y_true = np.asarray(y_true, dtype=float)
+    y_proba = np.clip(np.asarray(y_proba, dtype=float), eps, 1 - eps)
+    return float(-np.mean(y_true * np.log(y_proba) + (1 - y_true) * np.log(1 - y_proba)))
+
 
 def get_scores(y_true, y_pred, y_proba=None):
     """Compute classification metrics for one model and return them as a dict.
@@ -24,8 +45,9 @@ def get_scores(y_true, y_pred, y_proba=None):
         y_proba: Optional positive-class probabilities; required for ROC-AUC.
 
     Returns:
-        Dict with keys: tp, fp, fn, tn, accuracy, precision, recall, f1,
-    """ 
+        Dict with keys: tp, fp, fn, tn, accuracy, precision, recall, f1, and
+        (when y_proba is given) roc_auc, pr_auc, log_loss.
+    """
     y_true = np.asarray(y_true)
     y_pred = np.asarray(y_pred)
     
@@ -49,15 +71,16 @@ def get_scores(y_true, y_pred, y_proba=None):
     )
     
     if y_proba is not None:
-        #roc_auc uses the probabilities to rank how often a model a random positive above a random negative
-        #not too sure on how to get auc, used sklearn's implementation
+        # ROC-AUC: probability the model ranks a random positive above a random
+        # negative; threshold-free
         out["roc_auc"] = roc_auc_score(y_true, y_proba)
-        out["pr_auc"] = average_precision_score(y_true, y_proba) 
-    
+        out["pr_auc"] = average_precision_score(y_true, y_proba)
+        out["log_loss"] = compute_log_loss(y_true, y_proba)
+
     return out
 
 
-def plot_roc_pr(models, X_te, y_te, filename="roc_pr"):
+def plot_roc_pr(models, X_te, y_te, filename="roc_pr_all_quarters"):
     """
     Generate overlaid ROC and PR curves for multiple classifiers.
     Both curves are threshold-free comparisons.
@@ -95,7 +118,7 @@ def plot_roc_pr(models, X_te, y_te, filename="roc_pr"):
     base = float(np.mean(y_te))
     ax_pr.axhline(base, ls="--", color="gray", label=f"baseline ({base:.2f})")
     ax_pr.set_xlabel("Recall"); ax_pr.set_ylabel("Precision"); ax_pr.set_title("PR curve")
-    ax_pr.legend(loc="upper right")
+    ax_pr.legend(loc="lower left")
   
     fig.tight_layout()
     os.makedirs(EVAL_FIG_DIR, exist_ok=True)
@@ -104,7 +127,7 @@ def plot_roc_pr(models, X_te, y_te, filename="roc_pr"):
     plt.close(fig)
 
 
-def plot_confusion_matrices(models, X_te, y_te, filename="confusion_matrix"):
+def plot_confusion_matrices(models, X_te, y_te, filename="confusion_matrix_all_quarters"):
     """Plot confusion matrices for multiple classifiers side-by-side.
 
     Args:
@@ -172,8 +195,8 @@ def evaluate_correctness():
 
 def is_my_gb_good(X, y, params):
     """Is our GB good on real data? Compare it, on the same split, to
-    sklearn's GB (ceiling) and an always-majority dummy (floor). Good = near
-    sklearn and well above dummy, judged by recall/F1/AUC (not accuracy)."""
+    sklearn's GB (ceiling). Good = near sklearn, judged by recall/F1/AUC
+    (not accuracy)."""
     X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size = 0.2, random_state = 42, stratify = y)
 
     ours = GradientBoosterClassifier(**params)
@@ -186,34 +209,29 @@ def is_my_gb_good(X, y, params):
                                     max_depth = params["max_tree_depth"], random_state = 42).fit(X_tr, y_tr)
     sk_score = get_scores(y_te, sk.predict(X_te), sk.predict_proba(X_te)[:, 1])
 
-    dummy = DummyClassifier(strategy="most_frequent").fit(X_tr, y_tr)
-    dummy_score = get_scores(y_te, dummy.predict(X_te), dummy.predict_proba(X_te)[:, 1])
-    
-    #print the comparison table 
-    print(f"\n{'metric':<12}{'our GB':>10}{'sklearn':>10}{'dummy':>10}")
-    for k in ["tp", "fp", "fn", "tn", "accuracy", "precision", "recall", "f1", "roc_auc"]:
+    #print the comparison table
+    print(f"\n{'metric':<12}{'our GB':>10}{'sklearn':>10}")
+    for k in ["tp", "fp", "fn", "tn", "accuracy", "precision", "recall", "f1", "roc_auc", "pr_auc", "log_loss"]:
         if k in ("tp", "fp", "fn", "tn"):
             o = ours_score.get(k, "—")
             s = sk_score.get(k, "—")
-            d = dummy_score.get(k, "—")
-            print(f"{k:<12}{o:>10}{s:>10}{d:>10}")
+            print(f"{k:<12}{o:>10}{s:>10}")
         else:
             o = ours_score.get(k, float('nan'))
             s = sk_score.get(k, float('nan'))
-            d = dummy_score.get(k, float('nan'))
-            print(f"{k:<12}{o:>10.4f}{s:>10.4f}{d:>10.4f}")
-        
+            print(f"{k:<12}{o:>10.4f}{s:>10.4f}")
+
     print("our confusion matrix [[TN FP] [FN TP]]:")
     print(confusion_matrix(y_te, ours_pred))
 
-    all_models = {"our GB": ours, "sklearn": sk, "dummy": dummy}
-    plot_roc_pr({"our GB": ours, "sklearn": sk}, X_te, y_te)
-    plot_confusion_matrices(all_models, X_te, y_te)
+    models = {"our GB": ours, "sklearn": sk}
+    plot_roc_pr(models, X_te, y_te)
+    plot_confusion_matrices(models, X_te, y_te)
 
 
 def load_data():
     """Load the real exoplanet dataset. X is features and y is 0/1."""
-    df = pd.read_csv(os.path.join(DATA_DIR, "features.csv"))
+    df = pd.read_csv(os.path.join(DATA_DIR, "features_with_koi.csv"))
     df = df.dropna(subset=["label"])
     df = df.dropna() 
     
