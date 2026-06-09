@@ -39,6 +39,6 @@ We label each Kepler star from the KOI catalog: `1` if any of its objects of int
 
 ![Which stars host planets](src/data_exploration/stellar_hosting.png)
 
-*Metal-rich stars host confirmed planets far more often (host fraction climbs from ~0.06 to ~0.7 with metallicity), and cooler stars host more than hot ones across the H-R diagram.*
+*Metal-rich stars host confirmed planets far more often (host fraction climbs from ~0.06 to ~0.7 with metallicity), and cooler stars host more than hot ones across the H-R diagram. Surface gravity matters too: confirmed planets show up mostly around compact, high-gravity main-sequence dwarfs rather than puffed-up low-gravity giants, partly because a smaller star makes the same planet's transit deeper and easier to detect.*
 
 
