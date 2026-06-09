@@ -1,9 +1,12 @@
 """Data exploration plots for the RNN.
 
-Three views of the folded light-curve dataset / KOI catalog, each a function:
+Views of the folded light-curve dataset / KOI catalog, each a function:
   - plot_folded_gallery   : zoomed folded-transit examples (grid, deep -> shallow per class)
   - plot_median_overlay   : depth-normalized median folded curve per class (+ percentile band)
   - plot_stellar_hosting  : host fraction vs. metallicity, and across the H-R diagram
+  - plot_planet_types     : period-radius diagram (drawn planets) + transit depth by type
+
+Run as a script to regenerate all of them, or import and call any one.
 """
 import os
 import sys
@@ -13,15 +16,36 @@ from scipy.ndimage import uniform_filter1d
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.colors import to_rgb
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+from matplotlib.lines import Line2D
+import matplotlib.patheffects as pe
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(HERE, "..", "data")
-FIG_DIR = os.path.join(HERE, "..", "data_exploration")
-sys.path.append(HERE)
-from src.build_gb_dataset import get_star_labels   # CONFIRMED=1 / FP=0, CANDIDATE dropped
+HERE = os.path.dirname(os.path.abspath(__file__))     # .../src/data_exploration
+SRC_DIR = os.path.join(HERE, "..")                    # .../src
+DATA_DIR = os.path.join(HERE, "..", "..", "data")     # repo-root /data
+FIG_DIR = HERE                                        # figures live alongside this script
+sys.path.append(SRC_DIR)
+from build_gb_dataset import get_star_labels   # CONFIRMED=1 / FP=0, CANDIDATE dropped
 
 CONFIRMED_COLOR = "#1e88e5"
 FP_COLOR = "#d1495b"
+
+# radius-based planet types (Earth radii): (name, lo, hi, color)
+PLANET_TYPES = [
+    ("Earth-size",   0.0,  1.25, "#4daf4a"),
+    ("super-Earth",  1.25, 2.0,  "#377eb8"),
+    ("sub-Neptune",  2.0,  4.0,  "#984ea3"),
+    ("Neptune",      4.0,  6.0,  "#ff7f00"),
+    ("Jovian",       6.0,  40.0, "#e41a1c"),
+]
+
+# direction (dx, dy) to place each type's name relative to its glyph, chosen to
+# spread the crowded central labels apart so they don't overlap
+LABEL_DIR = {
+    "Earth-size": (0, -1), "super-Earth": (-1, -0.3), "sub-Neptune": (1, -0.3),
+    "Neptune": (1, 0.3), "Jovian": (0, 1),
+}
 
 
 def load_folded():
@@ -176,11 +200,89 @@ def plot_stellar_hosting():
     plt.close(fig)
 
 
+def _planet_rgba(color, n=220):
+    """Render a shaded sphere (light from upper-left) in `color` as an RGBA image."""
+    yy, xx = np.mgrid[-1:1:complex(n), -1:1:complex(n)]
+    r = np.hypot(xx, yy)
+    inside = r <= 1.0
+    nz = np.sqrt(np.clip(1 - r**2, 0, 1))
+    light = np.clip(0.30 + 0.70 * (-0.45 * xx + 0.45 * yy + 0.75 * nz), 0, 1)
+    rgb = np.array(to_rgb(color))
+    img = np.zeros((n, n, 4))
+    img[..., :3] = rgb[None, None, :] * light[..., None]
+    img[..., 3] = inside.astype(float)
+    return img
+
+
+def plot_planet_types(F, y, kep):
+    """How planet TYPES differ. (A) period-radius diagram with a drawn planet per
+    radius-based type (sized by radius) over the confirmed-host population; (B)
+    transit depth by type, from the folded curves. Catalog koi_prad/koi_period are
+    used only as plot axes / for the radius classification."""
+    meas_depth = -np.sort(F, axis=1)[:, :20].mean(axis=1)
+    conf = (y == 1) & (meas_depth > 0)
+    rnn = pd.DataFrame({"kep_id": kep[conf], "meas_depth": meas_depth[conf]})
+    koi = (pd.read_csv(os.path.join(DATA_DIR, "koi_cumulative.csv"), comment="#")
+           .drop_duplicates("kepid"))
+    df = rnn.merge(koi[["kepid", "koi_prad", "koi_period"]], left_on="kep_id",
+                   right_on="kepid", how="left").dropna(subset=["koi_prad", "koi_period"])
+    df["type"] = pd.NA
+    for name, lo, hi, _ in PLANET_TYPES:
+        df.loc[(df.koi_prad >= lo) & (df.koi_prad < hi), "type"] = name
+
+    fig, (a, b) = plt.subplots(1, 2, figsize=(16, 7))
+    handles = []   # legend carries the radius/count detail; glyphs get short names
+    for name, lo, hi, color in PLANET_TYPES:
+        s = df[df.type == name]
+        if not len(s):
+            continue
+        a.scatter(s.koi_period, s.koi_prad, s=7, alpha=0.20, color=color)  # dot darkness (Lower -> fainter)
+        med_p, med_r = np.median(s.koi_period), np.median(s.koi_prad)
+        zoom = 0.06 + 0.03 * np.sqrt(med_r)              # bigger glyph for bigger planet
+        a.add_artist(AnnotationBbox(OffsetImage(_planet_rgba(color), zoom=zoom),
+                                    (med_p, med_r), frameon=False, zorder=5))
+        # type name placed away from the cluster, white halo so it stands out
+        gr = zoom * 120                                  # glyph radius in points
+        dx, dy = LABEL_DIR.get(name, (0, -1))
+        ha = "left" if dx > 0 else "right" if dx < 0 else "center"
+        va = "bottom" if dy > 0 else "top" if dy < 0 else "center"
+        a.annotate(name, (med_p, med_r), xytext=(dx * (gr + 14), dy * (gr + 14)),
+                   textcoords="offset points", ha=ha, va=va, fontsize=9.5,
+                   color=color, fontweight="bold",
+                   path_effects=[pe.withStroke(linewidth=3, foreground="white")])
+        handles.append(Line2D([0], [0], marker="o", color="none", markerfacecolor=color,
+                              markersize=9, label=f"{name}  (~{med_r:.1f} R⊕, n={len(s)})"))
+    a.set_xscale("log"); a.set_yscale("log")
+    a.set_xlabel("orbital period (days)")
+    a.set_ylabel("planet radius (R⊕)")
+    a.set_title("Where each planet type lives (drawn to scale by radius)")
+    a.legend(handles=handles, loc="lower right", fontsize=8, framealpha=0.9)
+
+    order = [t[0] for t in PLANET_TYPES]
+    data = [df[df.type == name].meas_depth.values * 100 for name in order]
+    bp = b.boxplot(data, patch_artist=True, showfliers=False, medianprops=dict(color="black"))
+    for patch, t in zip(bp["boxes"], PLANET_TYPES):
+        patch.set_facecolor(t[3]); patch.set_alpha(0.6)
+    b.set_yscale("log")
+    b.set_xticks(range(1, len(order) + 1))
+    b.set_xticklabels(order, rotation=20, ha="right", fontsize=9)
+    b.set_ylabel("measured transit depth (%)  [log]")
+    b.set_title("Bigger planets make deeper transits (from folded curves)")
+
+    fig.suptitle("How exoplanet types differ: radius classes (confirmed hosts)", fontsize=13)
+    fig.text(0.5, 0.005, "R⊕ = Earth radii (planet size relative to Earth)",
+             ha="center", fontsize=8, style="italic", color="gray")
+    fig.tight_layout(rect=[0, 0.04, 1, 0.95])
+    _save(fig, "planet_types.png")
+    plt.close(fig)
+
+
 def main():
     F, y, kep, phase = load_folded()
     plot_folded_gallery(F, y, kep, phase)
     plot_median_overlay(F, y, phase)
     plot_stellar_hosting()
+    plot_planet_types(F, y, kep)
 
 
 if __name__ == "__main__":
