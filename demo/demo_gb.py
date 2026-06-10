@@ -1,5 +1,6 @@
 """A file that demonstrates the use of the GB class, on random data."""
-from random import seed
+import numpy as np
+import pandas as pd
 
 import sys, os
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -7,14 +8,7 @@ sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "GradientBooster")) 
 
 from GradientBooster.gradient_booster import GradientBoosterClassifier
-from GradientBooster.evaluate import load_data, get_scores
-
-import numpy as np
-
-def get_random_rows(X, y, size, seed=None):
-    rng = np.random.default_rng(seed)
-    indices = rng.choice(X.shape[0], size=size, replace=False)
-    return X[indices], y[indices]
+from GradientBooster.evaluate import get_scores
 
 def demo_gb(model_path, test_X, test_y):
     model = GradientBoosterClassifier.load_model(model_path)
@@ -29,11 +23,13 @@ def demo_gb(model_path, test_X, test_y):
     for i, (pred, true) in enumerate(zip(test_pred, test_y)):
         print(f"  Sample {i}: Predicted={pred}, True={true}")
 
+from demo import get_random_rows, load_data #LEAVE THIS HERE (else you'll get circular import errors)
+
 def main():
     size = 10
 
-    X, y = load_data()
-    test_X, test_y = get_random_rows(X, y, size, seed=42)
+    X, y, kep_id = load_data("features_with_koi.csv")
+    test_X, test_y, test_kep_id = get_random_rows(X, y, kep_id, size, seed=42)
     demo_gb("exoplanet_gb.pkl", test_X, test_y)
 
 if __name__ == "__main__":

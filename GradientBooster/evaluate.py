@@ -233,6 +233,9 @@ def is_my_gb_good(X, y, params):
     plot_roc_pr(models, X_te, y_te)
     plot_confusion_matrices(models, X_te, y_te)
 
+    #save our model for the demo
+    ours.save_model("exoplanet_gb.pkl")
+
 
 def load_data():
     """Load the real exoplanet dataset. X is features and y is 0/1."""
