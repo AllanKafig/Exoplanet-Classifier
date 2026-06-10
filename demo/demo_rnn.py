@@ -35,14 +35,19 @@ def demo_rnn(weights_path, test_X, test_y, threshold=0.3, name="RNN"):
     test_prob = evaluate(model, test_X)
     test_pred = (test_prob >= threshold).astype(int)
     
-    test_scores = get_scores(test_y, test_pred, None)
-    print(f"\nTest set scores (out of {len(test_y)}):")
-    for k, v in test_scores.items():
-        print(f"  {k:10s} {v:.4f}")
+    if test_y is not None:
+        test_scores = get_scores(test_y, test_pred, None)
+        print(f"\nTest set scores (out of {len(test_y)}):")
+        for k, v in test_scores.items():
+            print(f"  {k:10s} {v:.4f}")
     
-    print("\nIndividual predictions:")
-    for i, (pred, true) in enumerate(zip(test_pred, test_y)):
-        print(f"  Sample {i}: Predicted={pred}, True={int(true)}")
+        print("\nIndividual predictions:")
+        for i, (pred, true) in enumerate(zip(test_pred, test_y)):
+            print(f"  Sample {i}: Predicted={pred}, True={int(true)}")
+    else:
+        print("\nIndividual predictions:")
+        for i, pred in enumerate(test_pred):
+            print(f"  Sample {i}: Predicted={pred}")
 
 from demo import get_random_rows, load_data #LEAVE THIS HERE (else you'll get circular import errors)
 
