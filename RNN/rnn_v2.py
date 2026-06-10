@@ -1,9 +1,7 @@
-"""The GRU trained with gradient descent only.
-Same model and pipeline as rnn.py, but removed the Adam optimizer. Used the update rule, 
-w = w - lr * grad, and rely on a tuned learning rate as the dominant hyperparameter 
-instead of an adaptive optimizer. An LR sweep at this config (T=250, batch 64) found 
-ROC-AUC climbs with lr and peaks near lr = 0.5 (~0.86 ROC-AUC), beating Adam, with 
-no momentum or clipping. Above ~1.0 the step is too large and training diverges.
+"""The GRU from rnn.py, trained with plain gradient descent instead of Adam.
+Uses the update rule w = w - lr * grad and a tuned learning rate. lr = 0.5
+works best here; above ~1.0 training diverges (the training loss didn't go down 
+and bounced back).
 """
 from sklearn.metrics import average_precision_score, f1_score, precision_score, recall_score, roc_auc_score
 import torch
