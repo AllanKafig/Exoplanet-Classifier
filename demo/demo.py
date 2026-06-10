@@ -41,7 +41,7 @@ from demo_gb import demo_gb #LEAVE THIS HERE (else you'll get circular import er
 from demo_rnn import demo_rnn #LEAVE THIS HERE (else you'll get circular import errors)
 
 def main():
-    size = 20
+    size = 30
 
     X_feat, y_feat, kep_feat = load_data("features_with_koi.csv")
     X_ts, y_ts, kep_ts = load_data("rnn_timeseries.csv")
