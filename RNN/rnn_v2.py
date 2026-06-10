@@ -1,7 +1,6 @@
-"""The GRU from rnn.py, trained with plain gradient descent instead of Adam.
-Uses the update rule w = w - lr * grad and a tuned learning rate. lr = 0.5
-works best here; above ~1.0 training diverges (the training loss didn't go down 
-and bounced back).
+"""The GRU trained with plain gradient descent. Uses the update rule w = w - lr * grad 
+and a tuned learning rate. lr = 0.5 works best here; above ~1.0 training diverges 
+(the training loss didn't go down and bounced back).
 """
 from sklearn.metrics import average_precision_score, f1_score, precision_score, recall_score, roc_auc_score
 import torch

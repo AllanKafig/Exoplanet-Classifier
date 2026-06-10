@@ -1,4 +1,4 @@
-"""PyTorch nn.GRU reference, trained with the SAME gradient descent as
+"""PyTorch nn.GRU reference, trained with the same gradient descent as
 rnn_v2 (lr 0.5, 80 epochs, batch 64). The ONLY change vs rnn_v2 is the GRU
 itself: torch.nn.GRU + nn.Linear. 
 """
