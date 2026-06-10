@@ -2,7 +2,12 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from gradient_booster import GradientBoosterClassifier
+
+try:
+    from GradientBooster.gradient_booster import GradientBoosterClassifier
+except ImportError:
+    from gradient_booster import GradientBoosterClassifier
+
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, confusion_matrix, roc_auc_score, average_precision_score, roc_curve, precision_recall_curve

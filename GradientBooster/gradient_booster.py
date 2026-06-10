@@ -1,6 +1,7 @@
 import numpy as np
 import math
 from tqdm import tqdm
+import pickle
 
 class GradientBoosterClassifier:
     def __init__(self, n_trees, learning_rate, max_tree_depth):
@@ -72,6 +73,17 @@ class GradientBoosterClassifier:
         for tree in self.trees:
             F += self.learning_rate * tree.predict(X) #add the contribution of each tree
         return self._sigmoid(F) #convert log-odds to probabilities
+    
+    def save_model(self, filename):
+        """Saves the model to a file using pickle."""
+        with open(filename, 'wb') as f:
+            pickle.dump(self, f)
+
+    @staticmethod
+    def load_model(filename):
+        """Loads a model from a file using pickle."""
+        with open(filename, 'rb') as f:
+            return pickle.load(f)
 
 class RegressionTree:
     def __init__(self, max_depth, min_samples_split):
