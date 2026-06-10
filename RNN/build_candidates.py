@@ -3,9 +3,6 @@
 Same fold/bin pipeline as build_rnn_dataset.py, but selects CANDIDATE KOIs
 (unknown ground truth). Output columns match rnn_timeseries.csv minus `label`:
     kep_id, flux_0 ... flux_1999, <13 stellar features>
-
-CACHED_ONLY=True (default) builds only stars already in the local light-curve
-cache, so there is no big MAST download. Set False to download the rest (slow).
 """
 import sys
 import socket
