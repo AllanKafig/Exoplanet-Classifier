@@ -21,11 +21,10 @@ from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 from matplotlib.lines import Line2D
 import matplotlib.patheffects as pe
 
-HERE = os.path.dirname(os.path.abspath(__file__))     # .../src/data_exploration
-SRC_DIR = os.path.join(HERE, "..")                    # .../src
-DATA_DIR = os.path.join(HERE, "..", "..", "data")     # repo-root /data
-FIG_DIR = HERE                                        # figures live alongside this script
-sys.path.append(SRC_DIR)
+HERE = os.path.dirname(os.path.abspath(__file__))     # .../data_pipeline
+DATA_DIR = os.path.join(HERE, "..", "data")           # repo-root /data
+FIG_DIR = os.path.join(HERE, "..", "plots", "data_exploration")  # output images
+sys.path.append(HERE)
 from build_gb_dataset import get_star_labels   # CONFIRMED=1 / FP=0, CANDIDATE dropped
 
 CONFIRMED_COLOR = "#1e88e5"
