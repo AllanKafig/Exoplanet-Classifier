@@ -15,6 +15,18 @@ Credit: NASA Ames · [Source](https://science.nasa.gov/solar-system/skywatching/
 
 ### The Data
 
+The trained models read large preprocessed CSVs that some of them are too big for GitHub.
+Download them from the Drive folder and place them in `data/`:
+**Download:** [rnn data (Google Drive)](https://drive.google.com/drive/folders/1RI2eemthswUqK7BUpu43QS8lmoSCARJx?usp=sharing)
+
+After downloading, the complete `data/` folder should contain:
+  
+data/
+features_with_koi.csv            (Gradient Booster input, 1.5 MB)
+rnn_timeseries.csv               (RNN input, 278.3 MB)
+rnn_candidates_timeseries.csv    (unlabeled candidates, 66.9 MB)
+koi_cumulative.csv               (NASA KOI catalog, small, 10.4MB)
+
 We label each Kepler star from the KOI catalog: `1` if any of its objects of interest is **CONFIRMED** (hosts an exoplanet), `0` if all are **FALSE POSITIVE** (no exoplanet). CANDIDATE dispositions are excluded since they are unverified and would add label noise.
 
 **What does the raw signal look like for a host vs. a false positive?**
