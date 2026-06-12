@@ -57,6 +57,7 @@ data/
 - koi_cumulative.csv               (NASA KOI catalog, small, 10.4MB)
 
 ----
+### Some Data Explorations
 We label each Kepler star from the KOI catalog: `1` if any of its objects of interest is **CONFIRMED** (hosts an exoplanet), `0` if all are **FALSE POSITIVE** (no exoplanet). CANDIDATE dispositions are excluded since they are unverified and would add label noise.
 
 **What does the raw signal look like for a host vs. a false positive?**
