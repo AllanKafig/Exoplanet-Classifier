@@ -11,13 +11,13 @@ import shutil
 import socket
 from pathlib import Path
 import pandas as pd
+import numpy as np
 import lightkurve as lk
-from light_curve import extract_features
 
 #resolve data paths relative to the repo root so the script works from any cwd
 DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 
-OUTPUT_FILE = DATA_DIR / "features_all_quarters_per_star.csv"
+OUTPUT_FILE = DATA_DIR / "koi_cumulative.csv"
 SAMPLE_LIMIT = None  # set to a small int (e.g. 50) for a quick sanity test; None = use all stars
 SAVE_EVERY = 25      # checkpoint to disk every N completed stars
 DOWNLOAD_TIMEOUT = 300  # seconds — caps any single network call so a hung connection can't stall forever
@@ -28,6 +28,32 @@ MAX_CONSECUTIVE_NET_ERRORS = 40
 
 # Force a process-wide socket timeout so a stuck MAST connection can't hang the run.
 socket.setdefaulttimeout(DOWNLOAD_TIMEOUT)
+
+def extract_features(lc, kep_id=None):
+    """Extract features directly from a lightkurve LightCurve object."""
+    time = np.asarray(lc.time.value, dtype=float)
+    flux = np.asarray(lc.flux.value, dtype=float)
+    
+    good = ~np.isnan(time) & ~np.isnan(flux)
+    time = time[good]
+    flux = flux[good]
+
+    if len(flux) == 0:
+        return None
+
+    features = {
+        "kep_id": kep_id,
+        "num_points": len(flux),
+        "time_span": time.max() - time.min(),
+        "mean_flux": np.mean(flux),
+        "median_flux": np.median(flux),
+        "std_flux": np.std(flux),
+        "max_flux": np.max(flux),
+        "min_flux": np.min(flux),
+        "range_flux": np.max(flux) - np.min(flux)
+    }    
+
+    return features
 
 def get_star_labels():
     """

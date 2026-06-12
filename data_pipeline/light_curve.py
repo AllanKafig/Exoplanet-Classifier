@@ -1,35 +1,6 @@
 """Loads Kepler light curves from FITS files and extracts summary 
 flux-statistic features used to train the classifier."""
 import numpy as np
-import pandas as pd
-from astropy.io import fits
-
-def load_kepler_light_curve(fits_path):
-    """
-    Load a Kelper light curve from a FITS file. 
-    (Do we still need this? The dataset uses extract_features() and this 
-    function reads from FITS)
-    """
-    with fits.open(fits_path) as hdul:
-        data = hdul[1].data
-
-        df = pd.DataFrame({
-            "TIME": np.asarray(data["TIME"], dtype=float),
-            "FLUX": np.asarray(data["PDCSAP_FLUX"], dtype=float),
-            "FLUX_ERR": np.asarray(data["PDCSAP_FLUX_ERR"], dtype=float),
-            "QUALITY": np.asarray(data["SAP_QUALITY"], dtype=float),
-        })
-
-        kep_id = hdul[0].header.get("KEPLERID", None)
-
-    df = df[
-        (df["QUALITY"] == 0) &
-        (df["TIME"].notna()) &
-        (df["FLUX"].notna()) &
-        (df["FLUX_ERR"].notna())
-    ]
-    
-    return df, kep_id
 
 def extract_features(lc, kep_id=None):
     """Extract features directly from a lightkurve LightCurve object."""
