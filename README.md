@@ -38,7 +38,8 @@ Credit: NASA Ames · [Source](https://science.nasa.gov/solar-system/skywatching/
    - `demo_gb.py` — runs only the Gradient Booster on labeled feature data
    - `demo_rnn.py` — runs both RNN variants on light-curve time-series data
 
-   > **Note:** The three `demo*.py` files must stay in the same folder, they rely on shared imports that break if separated.
+
+> **Note:** The three `demo*.py` files must stay in the same folder, they rely on shared imports that break if separated.
 
 ----
 ### The Data
