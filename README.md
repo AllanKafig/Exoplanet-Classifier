@@ -13,8 +13,51 @@ https://github.com/user-attachments/assets/563a1316-dfad-43f2-a4fc-0a7e92f90436
 
 Credit: NASA Ames · [Source](https://science.nasa.gov/solar-system/skywatching/night-sky-network/may2025-night-sky-notes/)
 
+---
+
+### Running the Code
+
+1. **Clone the repo** and set up a Python environment with the required libraries:
+```bash
+   pip install -r requirements.txt
+```
+2. **Download the preprocessed data** from the Drive folder (see below) and place it in `data/`.
+3. **Train a model.** Two architectures are available:
+
+   **Gradient Booster**
+   - Run `evaluate.py` in the `GradientBooster/` directory. This trains the model, saves it, evaluates it on a test set, and prints performance metrics.
+
+   **RNN** — two variants:
+   - **Adam optimizer:** run `rnn.py` in the `RNN/` directory.
+   - **SGD optimizer:** run `rnn_v2.py` in the `RNN/` directory.
+
+   Both RNN scripts train the model, save it, evaluate it on a test set, and print performance metrics.
+
+4. **Run a trained model** using the demo scripts in the `demo/` directory.:
+   - `demo.py` — full demo: runs all three models (Gradient Booster, RNN-SGD, RNN-Adam) on both confirmed stars and unconfirmed NASA candidates
+   - `demo_gb.py` — runs only the Gradient Booster on labeled feature data
+   - `demo_rnn.py` — runs both RNN variants on light-curve time-series data
+
+
+> **Note:** The three `demo*.py` files must stay in the same folder, they rely on shared imports that break if separated.
+
+----
 ### The Data
 
+- The trained models read large preprocessed CSVs that some of them are too big for GitHub.
+- Download them from the Drive folder and place them in `data/`:
+[rnn data (Google Drive)](https://drive.google.com/drive/folders/1RI2eemthswUqK7BUpu43QS8lmoSCARJx?usp=sharing)
+
+After downloading, the complete `data/` folder should contain:
+  
+data/
+- features_with_koi.csv            (Gradient Booster input, 1.5 MB)
+- rnn_timeseries.csv               (RNN input, 278.3 MB)
+- rnn_candidates_timeseries.csv    (unlabeled candidates, 66.9 MB)
+- koi_cumulative.csv               (NASA KOI catalog, small, 10.4MB)
+
+----
+### Some Data Explorations
 We label each Kepler star from the KOI catalog: `1` if any of its objects of interest is **CONFIRMED** (hosts an exoplanet), `0` if all are **FALSE POSITIVE** (no exoplanet). CANDIDATE dispositions are excluded since they are unverified and would add label noise.
 
 **What does the raw signal look like for a host vs. a false positive?**
