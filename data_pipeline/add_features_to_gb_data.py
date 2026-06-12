@@ -12,7 +12,7 @@ import pandas as pd
 DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 
 # the light-curve feature table to enrich (has kep_id, <lc features>, label)
-IN_CSV  = DATA_DIR / "koi_cumulative.csv"
+IN_CSV  = DATA_DIR / "features_all_quarters_per_star.csv"
 OUT_CSV = DATA_DIR / "features_with_koi.csv"
 
 # physical measurements only

@@ -17,7 +17,7 @@ import lightkurve as lk
 #resolve data paths relative to the repo root so the script works from any cwd
 DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 
-OUTPUT_FILE = DATA_DIR / "koi_cumulative.csv"
+OUTPUT_FILE = DATA_DIR / "features_all_quarters_per_star.csv"
 SAMPLE_LIMIT = None  # set to a small int (e.g. 50) for a quick sanity test; None = use all stars
 SAVE_EVERY = 25      # checkpoint to disk every N completed stars
 DOWNLOAD_TIMEOUT = 300  # seconds — caps any single network call so a hung connection can't stall forever
