@@ -1,5 +1,5 @@
 ## Exoplanet-Classifier
-Classifying Kepler objects of interest by number of orbiting exoplanets using gradient boosting.
+Classifying Kepler objects of interest by number of orbiting exoplanets using gradient boosting and rnn.
 
 ### How We Detect Exoplanets
 <img src="readme_assets/transit_method.jpg" width="550" alt="The Transit Method">
